@@ -41,18 +41,23 @@ export class RulerModal {
             </p>
 
             <!-- Specification Cards -->
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1.25rem;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.75rem;">
               <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 0.85rem;">
                 <div style="font-size: 0.72rem; color: var(--text-dim); text-transform: uppercase; font-weight: 700;">Ukuran 2R Standar</div>
                 <div style="font-size: 1.2rem; font-weight: 800; color: #60a5fa; margin: 0.2rem 0;">60 × 90 mm</div>
-                <div style="font-size: 0.75rem; color: var(--text-muted);">6.0 cm × 9.0 cm (Standar Lab Foto)</div>
+                <div style="font-size: 0.75rem; color: var(--text-muted);">6.0 cm × 9.0 cm (Full Print)</div>
               </div>
 
               <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 0.85rem;">
-                <div style="font-size: 0.72rem; color: var(--text-dim); text-transform: uppercase; font-weight: 700;">Kapasitas Lembar A4</div>
-                <div style="font-size: 1.2rem; font-weight: 800; color: #34d399; margin: 0.2rem 0;">9 Foto / Lembar</div>
-                <div style="font-size: 0.75rem; color: var(--text-muted);">Grid 3 Kolom × 3 Baris Presisi</div>
+                <div style="font-size: 0.72rem; color: var(--text-dim); text-transform: uppercase; font-weight: 700;">Polaroid 2R (Retro)</div>
+                <div style="font-size: 1.2rem; font-weight: 800; color: #f59e0b; margin: 0.2rem 0;">60 × 90 mm</div>
+                <div style="font-size: 0.75rem; color: var(--text-muted);">Bingkai Putih + Space Memo 16mm</div>
               </div>
+            </div>
+
+            <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: var(--radius-md); padding: 0.65rem 0.85rem; margin-bottom: 1.25rem; display: flex; align-items: center; justify-content: space-between;">
+              <span style="font-size: 0.75rem; color: #a7f3d0;">Kapasitas Lembar A4 (210 × 297 mm):</span>
+              <b style="font-size: 0.95rem; color: #34d399;">9 Foto / Lembar (Grid 3 × 3)</b>
             </div>
 
             <!-- Visual Graphic Representation -->

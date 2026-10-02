@@ -120,7 +120,9 @@ export class LayoutEngine {
           instanceIndex: item.instanceIndex,
           cropMode: item.photo.cropMode || mergedSettings.cropMode,
           rotation: item.photo.rotation || 0,
-          cutMarks
+          cutMarks,
+          isPolaroid: Boolean(photoPreset.isPolaroid),
+          polaroidPadding: photoPreset.polaroidPadding || null
         });
       }
 

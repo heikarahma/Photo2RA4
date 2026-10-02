@@ -46,6 +46,34 @@ export const PHOTO_SIZE_PRESETS = [
     isDefault: true
   },
   {
+    id: 'polaroid-2r',
+    code: 'Polaroid 2R',
+    name: 'Polaroid 2R — 6 × 9 cm (Frame Putih Retro)',
+    shortName: 'Polaroid 2R (6 × 9 cm)',
+    width: 60,
+    height: 90,
+    unit: 'mm',
+    aspectRatio: 60 / 90,
+    isPolaroid: true,
+    polaroidPadding: { top: 6, left: 5, right: 5, bottom: 16 },
+    description: 'Ukuran 2R (60 × 90 mm) dengan bingkai putih khas polaroid & space memo 16mm di bawah. Muat 9 foto per lembar A4.',
+    isDefault: false
+  },
+  {
+    id: 'polaroid-instax',
+    code: 'Instax Mini',
+    name: 'Polaroid Instax Mini — 5.4 × 8.6 cm',
+    shortName: 'Instax Mini (5.4 × 8.6 cm)',
+    width: 54,
+    height: 86,
+    unit: 'mm',
+    aspectRatio: 54 / 86,
+    isPolaroid: true,
+    polaroidPadding: { top: 5, left: 4, right: 4, bottom: 15 },
+    description: 'Ukuran format film Fujifilm Instax Mini (54 × 86 mm) dengan frame instan. Muat 9 foto per lembar A4.',
+    isDefault: false
+  },
+  {
     id: '2r-intl',
     code: '2R-Intl',
     name: '2R — 2.5 × 3.5 inci (63.5 × 88.9 mm)',

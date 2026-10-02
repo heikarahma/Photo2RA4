@@ -800,6 +800,16 @@ input:checked + .toggle-slider:before {
   z-index: 20;
 }
 
+.preview-slot.is-polaroid {
+  background: #ffffff !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.14), 0 0 0 1px rgba(0, 0, 0, 0.05);
+  border-radius: 1px;
+}
+
+.preview-slot.is-polaroid:hover {
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25), 0 0 0 1.5px var(--primary);
+}
+
 .slot-inner-container {
   position: absolute;
   inset: 0;

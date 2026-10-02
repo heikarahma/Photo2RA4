@@ -47,8 +47,18 @@ export class PDFGenerator {
         const photo = slot.photo;
 
         try {
+          const polaroidOptions = slot.isPolaroid && slot.polaroidPadding
+            ? { isPolaroid: true, padding: slot.polaroidPadding }
+            : null;
+
           // Render cropped & rotated high-res image to dataURL
-          const highResDataUrl = await this.renderSlotImageToDataUrl(photo, slot.width, slot.height, slot.cropMode);
+          const highResDataUrl = await this.renderSlotImageToDataUrl(
+            photo,
+            slot.width,
+            slot.height,
+            slot.cropMode,
+            polaroidOptions
+          );
           
           doc.addImage(
             highResDataUrl,
@@ -99,7 +109,7 @@ export class PDFGenerator {
    * Renders the photo to an offscreen canvas at 300 DPI matching exact slot mm dimensions,
    * applying proper rotation and cropping (cover/fit).
    */
-  static async renderSlotImageToDataUrl(photo, slotWidthMm, slotHeightMm, cropMode = 'cover') {
+  static async renderSlotImageToDataUrl(photo, slotWidthMm, slotHeightMm, cropMode = 'cover', polaroidOptions = null) {
     return new Promise((resolve, reject) => {
       const img = new Image();
       img.crossOrigin = 'anonymous';
@@ -145,23 +155,60 @@ export class PDFGenerator {
             srcH = rotCanvas.height;
           }
 
+          // Target drawing rectangle inside the card
+          let targetX = 0;
+          let targetY = 0;
+          let targetW = canvasW;
+          let targetH = canvasH;
+
+          if (polaroidOptions?.isPolaroid && polaroidOptions?.padding) {
+            const pad = polaroidOptions.padding;
+            targetX = Math.round(pad.left * dpmm);
+            targetY = Math.round(pad.top * dpmm);
+            targetW = Math.round((slotWidthMm - pad.left - pad.right) * dpmm);
+            targetH = Math.round((slotHeightMm - pad.top - pad.bottom) * dpmm);
+
+            // Dark photo base behind inner picture
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(targetX, targetY, targetW, targetH);
+          }
+
           const placement = LayoutEngine.computeImagePlacement(
             srcW,
             srcH,
-            canvasW,
-            canvasH,
+            targetW,
+            targetH,
             cropMode,
             photo.customCrop,
             0 // already rotated above
           );
 
-          ctx.drawImage(
-            sourceImg,
-            placement.drawX,
-            placement.drawY,
-            placement.drawWidth,
-            placement.drawHeight
-          );
+          if (polaroidOptions?.isPolaroid) {
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(targetX, targetY, targetW, targetH);
+            ctx.clip();
+            ctx.drawImage(
+              sourceImg,
+              targetX + placement.drawX,
+              targetY + placement.drawY,
+              placement.drawWidth,
+              placement.drawHeight
+            );
+            // Subtle hairline around inner photo
+            ctx.strokeStyle = 'rgba(0, 0, 0, 0.12)';
+            ctx.lineWidth = Math.max(1, Math.round(0.12 * dpmm));
+            ctx.strokeRect(targetX, targetY, targetW, targetH);
+            ctx.restore();
+          } else {
+            ctx.drawImage(
+              sourceImg,
+              placement.drawX,
+              placement.drawY,
+              placement.drawWidth,
+              placement.drawHeight
+            );
+          }
 
           resolve(canvas.toDataURL('image/jpeg', 0.92));
         } catch (e) {

@@ -69,14 +69,28 @@ export class LayoutPreview {
       const cropMode = slot.cropMode;
       const objectFit = cropMode === 'fit' ? 'contain' : 'cover';
 
+      const isPolaroid = Boolean(slot.isPolaroid && slot.polaroidPadding);
+      let innerContainerStyle = 'position: absolute; inset: 0; overflow: hidden; background: #e2e8f0;';
+      let slotExtraStyle = '';
+
+      if (isPolaroid) {
+        const pTop = slot.polaroidPadding.top * mmToPx;
+        const pLeft = slot.polaroidPadding.left * mmToPx;
+        const pRight = slot.polaroidPadding.right * mmToPx;
+        const pBottom = slot.polaroidPadding.bottom * mmToPx;
+
+        slotExtraStyle = 'background: #ffffff; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12); border: 1px solid #e2e8f0;';
+        innerContainerStyle = `position: absolute; left: ${pLeft}px; top: ${pTop}px; right: ${pRight}px; bottom: ${pBottom}px; overflow: hidden; background: #0f172a; border: 1px solid rgba(0, 0, 0, 0.06);`;
+      }
+
       html += `
-        <div class="preview-slot" 
+        <div class="preview-slot ${isPolaroid ? 'is-polaroid' : ''}" 
              data-photo-id="${slot.photo.id}" 
              data-slot-id="${slot.id}"
-             style="left: ${leftPx}px; top: ${topPx}px; width: ${widthPx}px; height: ${heightPx}px;"
+             style="left: ${leftPx}px; top: ${topPx}px; width: ${widthPx}px; height: ${heightPx}px; ${slotExtraStyle}"
              title="Klik untuk sesuaikan crop / posisi foto">
           
-          <div class="slot-inner-container">
+          <div class="slot-inner-container" style="${innerContainerStyle}">
             <img src="${slot.photo.previewUrl || slot.photo.url}" 
                  alt="${slot.photo.name}" 
                  style="transform: rotate(${rotation}deg); object-fit: ${objectFit}; width: 100%; height: 100%;" />
@@ -84,7 +98,7 @@ export class LayoutPreview {
 
           <!-- Hover Dimension Tooltip -->
           <div class="slot-dimension-badge">
-            ${slot.width} × ${slot.height} mm (2R) • Klik Edit
+            ${slot.width} × ${slot.height} mm (${photoPreset.code}) • Klik Edit
           </div>
 
           <!-- Cutting Guides on Preview -->
