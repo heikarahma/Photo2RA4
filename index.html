@@ -45,7 +45,8 @@
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polygon points="5 3 19 12 5 21 5 3"/>
             </svg>
-            <span>Coba Foto Sampel</span>
+            <span class="btn-text-desktop">Coba Foto Sampel</span>
+            <span class="btn-text-mobile">Sampel</span>
           </button>
           
           <button class="btn btn-subtle btn-sm" id="btn-verify-size" title="Verifikasi dimensi fisik foto dalam milimeter">
@@ -55,7 +56,8 @@
               <path d="m11.5 9.5 2-2"/>
               <path d="m8.5 6.5 2-2"/>
             </svg>
-            <span>Panduan Ukuran</span>
+            <span class="btn-text-desktop">Panduan Ukuran</span>
+            <span class="btn-text-mobile">Ukuran</span>
           </button>
         </div>
 
@@ -64,10 +66,35 @@
 
     <!-- Main Workspace Area -->
     <main class="app-main">
-      <div class="workspace-grid">
+      
+      <!-- Mobile View Switcher (Only visible on tablet & mobile screens) -->
+      <nav class="mobile-nav-tabs" aria-label="Navigasi Tampilan Mobile">
+        <button type="button" class="mobile-nav-btn active" id="tab-nav-editor">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+            <circle cx="8.5" cy="8.5" r="1.5"/>
+            <polyline points="21 15 16 10 5 21"/>
+          </svg>
+          <span>Foto & Atur</span>
+          <span class="mobile-badge" id="mobile-tab-photo-badge">0</span>
+        </button>
+
+        <button type="button" class="mobile-nav-btn" id="tab-nav-preview">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="16" y1="13" x2="8" y2="13"/>
+            <line x1="16" y1="17" x2="8" y2="17"/>
+          </svg>
+          <span>Pratinjau A4</span>
+          <span class="mobile-badge highlight" id="mobile-tab-page-badge">1 Hal</span>
+        </button>
+      </nav>
+
+      <div class="workspace-grid view-mode-editor" id="workspace-grid-container">
         
         <!-- Left Column: Controls & Photo Queue -->
-        <aside class="sidebar-panel">
+        <aside class="sidebar-panel" id="panel-sidebar">
           
           <!-- Upload Area Card -->
           <div class="glass-card">
@@ -82,7 +109,7 @@
                 </span>
                 <span>Upload Foto</span>
               </div>
-              <span style="font-size:0.75rem; color:var(--text-muted);">Mendukung Multi-Upload</span>
+              <span class="card-subtitle-badge">Multi-Upload</span>
             </div>
 
             <div class="upload-dropzone" id="upload-dropzone" role="button" tabindex="0" aria-label="Dropzone upload foto">
@@ -94,7 +121,7 @@
                 </svg>
               </div>
               <div class="dropzone-title">Tarik & Letakkan Foto di Sini</div>
-              <div class="dropzone-subtitle">atau klik untuk memilih file dari komputer / HP</div>
+              <div class="dropzone-subtitle">atau sentuh / klik untuk memilih dari galeri HP</div>
               
               <div class="dropzone-badges">
                 <span class="format-chip">JPG</span>
@@ -111,13 +138,24 @@
           <!-- Photo Gallery & Quantity List -->
           <div id="gallery-mount-point"></div>
 
+          <!-- Quick Jump To Preview Banner on Mobile -->
+          <div class="mobile-jump-preview-card" id="mobile-jump-preview-card" style="display: none;">
+            <div>
+              <div style="font-size: 0.85rem; font-weight: 700; color: #93c5fd;">Foto Siap Dicetak!</div>
+              <div style="font-size: 0.75rem; color: var(--text-muted);" id="mobile-jump-preview-text">Telah disusun rapi di kertas A4.</div>
+            </div>
+            <button type="button" class="btn btn-primary btn-sm" id="btn-jump-to-preview">
+              <span>Buka Pratinjau →</span>
+            </button>
+          </div>
+
           <!-- Print Settings Form (Paper, Photo size, Guides) -->
           <div id="settings-mount-point"></div>
 
         </aside>
 
         <!-- Right Column: Interactive A4 Canvas & Print Operations -->
-        <section class="preview-panel">
+        <section class="preview-panel" id="panel-preview">
           
           <!-- Top Preview Toolbar -->
           <div class="preview-toolbar">
@@ -142,12 +180,12 @@
             </div>
 
             <!-- Zoom and Pagination Controls -->
-            <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <div class="preview-toolbar-actions">
               
               <!-- Zoom Tools -->
-              <div style="display: flex; align-items: center; background: rgba(15,23,42,0.8); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); overflow: hidden;">
+              <div class="zoom-tools-group">
                 <button class="action-icon-btn" id="btn-zoom-out" title="Perkecil Tampilan">−</button>
-                <button class="action-icon-btn" id="btn-zoom-fit" title="Sesuaikan Ukuran Layar" style="font-size:0.75rem; width:auto; padding:0 6px;">Fit</button>
+                <button class="action-icon-btn zoom-fit-btn" id="btn-zoom-fit" title="Sesuaikan Ukuran Layar">Fit</button>
                 <button class="action-icon-btn" id="btn-zoom-in" title="Perbesar Tampilan">+</button>
               </div>
 
@@ -158,7 +196,7 @@
                     <polyline points="15 18 9 12 15 6"/>
                   </svg>
                 </button>
-                <span class="pagination-label" id="pagination-current-label">Halaman 1 dari 1</span>
+                <span class="pagination-label" id="pagination-current-label">Hal 1/1</span>
                 <button class="action-icon-btn" id="btn-next-page" title="Halaman Berikutnya">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polyline points="9 18 15 12 9 6"/>
@@ -191,26 +229,26 @@
                   <span>✓</span> Skala: 100% / Ukuran Asli
                 </div>
                 <div class="checklist-item danger">
-                  <span>✕</span> JANGAN gunakan "Fit to Page"
+                  <span>✕</span> JANGAN "Fit to Page"
                 </div>
                 <div class="checklist-item danger">
-                  <span>✕</span> JANGAN gunakan "Shrink to Fit"
+                  <span>✕</span> JANGAN "Shrink to Fit"
                 </div>
               </div>
             </div>
           </div>
 
           <!-- Bottom Action CTA Bar -->
-          <div class="glass-card" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
-            <div>
-              <div style="font-size: 0.9rem; font-weight: 700; color: var(--text-main);">Siap Mencetak Layout?</div>
-              <div style="font-size: 0.78rem; color: var(--text-muted);">
+          <div class="glass-card bottom-action-bar">
+            <div class="bottom-action-info">
+              <div class="bottom-action-title">Siap Mencetak Layout?</div>
+              <div class="bottom-action-desc">
                 File PDF dibuat dengan koordinat milimeter presisi tinggi (300 DPI) beserta garis panduan potong.
               </div>
             </div>
 
-            <div style="display: flex; align-items: center; gap: 0.75rem;">
-              <button class="btn btn-secondary btn-lg" id="btn-open-print-dialog" title="Cetak langsung menggunakan dialog printer browser">
+            <div class="bottom-action-buttons">
+              <button class="btn btn-secondary btn-lg btn-mobile-full" id="btn-open-print-dialog" title="Cetak langsung menggunakan dialog printer browser">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <polyline points="6 9 6 2 18 2 18 9"/>
                   <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
@@ -219,7 +257,7 @@
                 <span>Print Langsung</span>
               </button>
 
-              <button class="btn btn-primary btn-lg" id="btn-download-pdf" title="Download berkas PDF presisi tinggi untuk dicetak kapan saja">
+              <button class="btn btn-primary btn-lg btn-mobile-full" id="btn-download-pdf" title="Download berkas PDF presisi tinggi untuk dicetak kapan saja">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                   <polyline points="7 10 12 15 17 10"/>

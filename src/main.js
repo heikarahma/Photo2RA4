@@ -191,6 +191,21 @@ class Photo2RA4App {
       ctaPrintBtn.style.opacity = hasPhotos ? '1' : '0.5';
       ctaPrintBtn.style.pointerEvents = hasPhotos ? 'auto' : 'none';
     }
+
+    // Update Mobile specific indicators
+    const mobilePhotoBadge = document.getElementById('mobile-tab-photo-badge');
+    const mobilePageBadge = document.getElementById('mobile-tab-page-badge');
+    const mobileJumpCard = document.getElementById('mobile-jump-preview-card');
+    const mobileJumpText = document.getElementById('mobile-jump-preview-text');
+
+    if (mobilePhotoBadge) mobilePhotoBadge.textContent = `${this.layout.totalPhotos}`;
+    if (mobilePageBadge) mobilePageBadge.textContent = `${this.layout.totalPages} Hal`;
+    if (mobileJumpCard) {
+      mobileJumpCard.style.display = hasPhotos ? 'flex' : 'none';
+      if (mobileJumpText) {
+        mobileJumpText.textContent = `${this.layout.totalPhotos} foto (${this.layout.totalPages} lembar A4) siap dicetak.`;
+      }
+    }
   }
 
   updatePaginationUI() {
@@ -240,24 +255,58 @@ class Photo2RA4App {
 
     if (zoomInBtn) {
       zoomInBtn.addEventListener('click', () => {
-        this.zoomLevel = Math.min(2.0, this.zoomLevel + 0.15);
+        this.zoomLevel = Math.min(2.5, this.zoomLevel + 0.15);
         this.preview.setZoom(this.zoomLevel);
       });
     }
 
     if (zoomOutBtn) {
       zoomOutBtn.addEventListener('click', () => {
-        this.zoomLevel = Math.max(0.6, this.zoomLevel - 0.15);
+        this.zoomLevel = Math.max(0.4, this.zoomLevel - 0.15);
         this.preview.setZoom(this.zoomLevel);
       });
     }
 
     if (zoomFitBtn) {
       zoomFitBtn.addEventListener('click', () => {
-        this.zoomLevel = 1.0;
-        this.preview.setZoom(this.zoomLevel);
+        this.preview.setZoom('fit');
+        this.zoomLevel = this.preview.zoomLevel;
       });
     }
+
+    // Mobile View Switcher Tabs
+    const tabEditorBtn = document.getElementById('tab-nav-editor');
+    const tabPreviewBtn = document.getElementById('tab-nav-preview');
+    const jumpToPreviewBtn = document.getElementById('btn-jump-to-preview');
+
+    if (tabEditorBtn) {
+      tabEditorBtn.addEventListener('click', () => this.switchMobileTab('editor'));
+    }
+
+    if (tabPreviewBtn) {
+      tabPreviewBtn.addEventListener('click', () => this.switchMobileTab('preview'));
+    }
+
+    if (jumpToPreviewBtn) {
+      jumpToPreviewBtn.addEventListener('click', () => this.switchMobileTab('preview'));
+    }
+
+    // Window Resize Handler for responsive canvas auto-fit
+    let resizeTimer;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        if (window.innerWidth > 860) {
+          const grid = document.getElementById('workspace-grid-container');
+          grid?.classList.remove('view-mode-editor', 'view-mode-preview');
+        } else {
+          this.switchMobileTab(this.activeMobileTab || 'editor');
+        }
+        if (this.preview.fitToScreen) {
+          this.preview.fitToContainer();
+        }
+      }, 150);
+    });
 
     // Download PDF Action
     const dlPdfBtn = document.getElementById('btn-download-pdf');
@@ -283,6 +332,30 @@ class Photo2RA4App {
       rulerBtn.addEventListener('click', () => {
         this.rulerModal.open();
       });
+    }
+  }
+
+  switchMobileTab(tabName) {
+    this.activeMobileTab = tabName;
+    const grid = document.getElementById('workspace-grid-container');
+    const tabEditor = document.getElementById('tab-nav-editor');
+    const tabPreview = document.getElementById('tab-nav-preview');
+
+    if (!grid) return;
+
+    if (tabName === 'preview') {
+      grid.classList.remove('view-mode-editor');
+      grid.classList.add('view-mode-preview');
+      tabEditor?.classList.remove('active');
+      tabPreview?.classList.add('active');
+      setTimeout(() => {
+        this.preview.fitToContainer();
+      }, 60);
+    } else {
+      grid.classList.remove('view-mode-preview');
+      grid.classList.add('view-mode-editor');
+      tabPreview?.classList.remove('active');
+      tabEditor?.classList.add('active');
     }
   }
 

@@ -19,6 +19,12 @@ export class LayoutPreview {
     if (this.currentPage >= layout.totalPages) {
       this.currentPage = Math.max(0, layout.totalPages - 1);
     }
+    if (this.fitToScreen) {
+      const autoFit = this.calculateAutoFitZoom();
+      if (autoFit < 1.0) {
+        this.zoomLevel = autoFit;
+      }
+    }
     this.render();
   }
 
@@ -214,8 +220,36 @@ export class LayoutPreview {
     });
   }
 
+  calculateAutoFitZoom() {
+    if (!this.container || !this.layout) return 1.0;
+    const viewport = this.container.closest('.canvas-viewport-container') || this.container.parentElement;
+    if (!viewport) return 1.0;
+
+    const containerWidth = viewport.clientWidth;
+    if (!containerWidth || containerWidth <= 0) return 1.0;
+
+    const paper = this.layout.paper;
+    const baseWidthPx = paper.orientation === 'landscape' ? 760 : 560;
+    const paddingBuffer = containerWidth <= 480 ? 20 : (containerWidth <= 768 ? 32 : 48);
+    const availableWidth = Math.max(260, containerWidth - paddingBuffer);
+
+    if (availableWidth < baseWidthPx) {
+      return Math.max(0.35, Math.min(1.0, Number((availableWidth / baseWidthPx).toFixed(2))));
+    }
+    return 1.0;
+  }
+
+  fitToContainer() {
+    this.zoomLevel = this.calculateAutoFitZoom();
+    this.render();
+  }
+
   setZoom(level) {
-    this.zoomLevel = Math.max(0.5, Math.min(2.0, level));
+    if (level === 'fit') {
+      this.fitToContainer();
+      return;
+    }
+    this.zoomLevel = Math.max(0.35, Math.min(2.5, level));
     this.render();
   }
 }

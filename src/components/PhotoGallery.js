@@ -47,46 +47,59 @@ export class PhotoGallery {
 
       html += `
         <div class="photo-card-item" data-photo-id="${photo.id}">
-          <div class="photo-thumbnail-box">
-            <img src="${photo.previewUrl}" alt="${photo.name}" style="transform: rotate(${rotationDeg}deg);" />
-          </div>
-
-          <div class="photo-details">
-            <div class="photo-filename" title="${photo.name}">${photo.name}</div>
-            <div class="photo-meta">
-              <span>${photo.naturalWidth}×${photo.naturalHeight}px</span>
-              <span>•</span>
-              <span>${formattedSize}</span>
-              ${rotationDeg > 0 ? `<span style="color:#60a5fa;">↻ ${rotationDeg}°</span>` : ''}
+          <div class="photo-card-main">
+            <div class="photo-thumbnail-box">
+              <img src="${photo.previewUrl}" alt="${photo.name}" style="transform: rotate(${rotationDeg}deg);" />
             </div>
-          </div>
 
-          <!-- Quantity Stepper -->
-          <div class="quantity-control-group" title="Jumlah cetak foto ini">
-            <button class="qty-btn btn-qty-minus" data-photo-id="${photo.id}" aria-label="Kurangi salinan">−</button>
-            <input type="number" class="qty-input" data-photo-id="${photo.id}" value="${photo.quantity || 1}" min="1" max="99" />
-            <button class="qty-btn btn-qty-plus" data-photo-id="${photo.id}" aria-label="Tambah salinan">+</button>
-          </div>
+            <div class="photo-details">
+              <div class="photo-filename" title="${photo.name}">${photo.name}</div>
+              <div class="photo-meta">
+                <span>${photo.naturalWidth}×${photo.naturalHeight}px</span>
+                <span>•</span>
+                <span>${formattedSize}</span>
+                ${rotationDeg > 0 ? `<span style="color:#60a5fa;">↻ ${rotationDeg}°</span>` : ''}
+              </div>
+            </div>
 
-          <!-- Individual Actions -->
-          <div class="photo-actions">
-            <button class="action-icon-btn btn-rotate-photo" data-photo-id="${photo.id}" title="Putar 90°">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
-              </svg>
-            </button>
-            <button class="action-icon-btn btn-crop-photo" data-photo-id="${photo.id}" title="Sesuaikan Posisi / Crop">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M6 2v14a2 2 0 0 0 2 2h14"/>
-                <path d="M18 22V8a2 2 0 0 0-2-2H2"/>
-              </svg>
-            </button>
-            <button class="action-icon-btn danger btn-delete-photo" data-photo-id="${photo.id}" title="Hapus foto">
+            <button class="action-icon-btn danger btn-delete-photo btn-delete-mobile-header" data-photo-id="${photo.id}" title="Hapus foto">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="3 6 5 6 21 6"></polyline>
                 <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
               </svg>
             </button>
+          </div>
+
+          <div class="photo-card-controls">
+            <!-- Quantity Stepper -->
+            <div class="quantity-control-group" title="Jumlah cetak foto ini">
+              <button class="qty-btn btn-qty-minus" data-photo-id="${photo.id}" aria-label="Kurangi salinan">−</button>
+              <input type="number" class="qty-input" data-photo-id="${photo.id}" value="${photo.quantity || 1}" min="1" max="99" />
+              <button class="qty-btn btn-qty-plus" data-photo-id="${photo.id}" aria-label="Tambah salinan">+</button>
+            </div>
+
+            <!-- Individual Actions -->
+            <div class="photo-actions">
+              <button class="action-icon-btn btn-rotate-photo" data-photo-id="${photo.id}" title="Putar 90°">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+                </svg>
+                <span class="action-btn-label">Putar</span>
+              </button>
+              <button class="action-icon-btn btn-crop-photo" data-photo-id="${photo.id}" title="Sesuaikan Posisi / Crop">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M6 2v14a2 2 0 0 0 2 2h14"/>
+                  <path d="M18 22V8a2 2 0 0 0-2-2H2"/>
+                </svg>
+                <span class="action-btn-label">Crop</span>
+              </button>
+              <button class="action-icon-btn danger btn-delete-photo btn-delete-desktop" data-photo-id="${photo.id}" title="Hapus foto">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="3 6 5 6 21 6"></polyline>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
+              </button>
+            </div>
           </div>
         </div>
       `;
