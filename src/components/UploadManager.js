@@ -6,6 +6,10 @@ export class UploadManager {
   constructor(options = {}) {
     this.onPhotosAdded = options.onPhotosAdded || (() => {});
     this.onError = options.onError || (() => {});
+    this.onInfo = options.onInfo || (() => {});
+    this.watchedFileKeys = new Set();
+    this.watchTimer = null;
+    this.directoryHandle = null;
     this.init();
   }
 
@@ -13,6 +17,9 @@ export class UploadManager {
     this.fileInput = document.getElementById('file-input');
     this.dropzone = document.getElementById('upload-dropzone');
     this.sampleBtn = document.getElementById('btn-load-sample');
+    this.watchFolderBtn = document.getElementById('btn-watch-folder');
+    this.stopWatchFolderBtn = document.getElementById('btn-stop-watch-folder');
+    this.tetherStatus = document.getElementById('tether-status');
 
     if (this.fileInput) {
       this.fileInput.addEventListener('change', (e) => this.handleFileSelect(e));
@@ -53,6 +60,14 @@ export class UploadManager {
       });
     }
 
+    if (this.watchFolderBtn) {
+      this.watchFolderBtn.addEventListener('click', () => this.startFolderWatch());
+    }
+
+    if (this.stopWatchFolderBtn) {
+      this.stopWatchFolderBtn.addEventListener('click', () => this.stopFolderWatch());
+    }
+
     // Support clipboard paste (Ctrl+V / Cmd+V)
     window.addEventListener('paste', (e) => {
       const items = e.clipboardData?.items;
@@ -80,11 +95,10 @@ export class UploadManager {
   }
 
   async processFiles(files) {
-    const validImageTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml', 'image/bmp', 'image/gif'];
     const newPhotos = [];
 
     for (const file of files) {
-      if (!validImageTypes.includes(file.type) && !file.name.match(/\.(jpg|jpeg|png|webp|bmp|heic|heif)$/i)) {
+      if (!this.isSupportedImage(file)) {
         this.onError(`Format file "${file.name}" tidak didukung. Harap gunakan JPG, PNG, atau WebP.`);
         continue;
       }
@@ -101,6 +115,101 @@ export class UploadManager {
     if (newPhotos.length > 0) {
       this.onPhotosAdded(newPhotos);
     }
+  }
+
+  async startFolderWatch() {
+    if (!('showDirectoryPicker' in window)) {
+      this.onError('Browser ini belum mendukung pilih folder otomatis. Gunakan Chrome atau Edge terbaru.');
+      return;
+    }
+
+    try {
+      this.directoryHandle = await window.showDirectoryPicker({ mode: 'read' });
+      this.watchedFileKeys.clear();
+      this.setTetherStatus(`Menghubungkan folder "${this.directoryHandle.name}"...`);
+
+      const initialFiles = await this.collectSupportedFiles(this.directoryHandle);
+      initialFiles.forEach(file => this.watchedFileKeys.add(this.getFileKey(file)));
+
+      if (this.watchTimer) clearInterval(this.watchTimer);
+      this.watchTimer = setInterval(() => this.scanWatchedFolder(), 2200);
+
+      if (this.stopWatchFolderBtn) this.stopWatchFolderBtn.hidden = false;
+      if (this.watchFolderBtn) this.watchFolderBtn.querySelector('span').textContent = 'Ganti Folder Kamera';
+
+      this.setTetherStatus(`Terhubung ke "${this.directoryHandle.name}". Jepretan baru akan masuk otomatis.`);
+      this.onInfo(`Auto Import aktif untuk folder "${this.directoryHandle.name}".`);
+    } catch (err) {
+      if (err?.name !== 'AbortError') {
+        console.error('Gagal memilih folder kamera:', err);
+        this.onError('Gagal menghubungkan folder kamera. Silakan coba lagi.');
+      }
+    }
+  }
+
+  stopFolderWatch() {
+    if (this.watchTimer) {
+      clearInterval(this.watchTimer);
+      this.watchTimer = null;
+    }
+    this.directoryHandle = null;
+    this.watchedFileKeys.clear();
+
+    if (this.stopWatchFolderBtn) this.stopWatchFolderBtn.hidden = true;
+    if (this.watchFolderBtn) this.watchFolderBtn.querySelector('span').textContent = 'Pilih Folder Kamera';
+    this.setTetherStatus('Auto Import berhenti. Pilih folder output kamera untuk menyambungkan lagi.');
+    this.onInfo('Auto Import kamera dihentikan.');
+  }
+
+  async scanWatchedFolder() {
+    if (!this.directoryHandle) return;
+
+    try {
+      const files = await this.collectSupportedFiles(this.directoryHandle);
+      const newFiles = files.filter(file => {
+        const key = this.getFileKey(file);
+        if (this.watchedFileKeys.has(key)) return false;
+        this.watchedFileKeys.add(key);
+        return true;
+      });
+
+      if (newFiles.length > 0) {
+        await this.processFiles(newFiles);
+        this.setTetherStatus(`${newFiles.length} foto baru diimpor otomatis dari "${this.directoryHandle.name}".`);
+      }
+    } catch (err) {
+      console.error('Gagal membaca folder kamera:', err);
+      this.stopFolderWatch();
+      this.onError('Akses folder kamera terputus. Pilih folder lagi untuk melanjutkan.');
+    }
+  }
+
+  async collectSupportedFiles(directoryHandle) {
+    const files = [];
+
+    for await (const entry of directoryHandle.values()) {
+      if (entry.kind !== 'file') continue;
+
+      const file = await entry.getFile();
+      if (this.isSupportedImage(file)) {
+        files.push(file);
+      }
+    }
+
+    return files.sort((a, b) => a.lastModified - b.lastModified);
+  }
+
+  isSupportedImage(file) {
+    const validImageTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml', 'image/bmp', 'image/gif'];
+    return validImageTypes.includes(file.type) || Boolean(file.name.match(/\.(jpg|jpeg|png|webp|bmp|heic|heif)$/i));
+  }
+
+  getFileKey(file) {
+    return `${file.name}-${file.size}-${file.lastModified}`;
+  }
+
+  setTetherStatus(message) {
+    if (this.tetherStatus) this.tetherStatus.textContent = message;
   }
 
   readPhotoFile(file) {

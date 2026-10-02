@@ -608,6 +608,68 @@ img, svg {
   margin-top: 0.75rem;
 }
 
+.tether-import-panel {
+  align-items: center;
+  background: rgba(15, 23, 42, 0.42);
+  border: 1px solid rgba(59, 130, 246, 0.22);
+  border-radius: var(--radius-md);
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  margin-top: 0.85rem;
+  padding: 0.85rem;
+}
+
+.tether-copy {
+  min-width: 0;
+}
+
+.tether-title {
+  color: var(--text-main);
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.tether-desc {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  line-height: 1.45;
+  margin-top: 0.15rem;
+}
+
+.tether-actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: 0.45rem;
+}
+
+@media (max-width: 640px) {
+  .tether-import-panel {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .tether-actions {
+    display: grid;
+    grid-template-columns: 1fr auto;
+  }
+
+  .tether-actions .btn {
+    min-height: 36px;
+  }
+}
+
+@media (max-width: 380px) {
+  .tether-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .tether-actions .btn {
+    width: 100%;
+  }
+}
+
 /* --------------------------------------------------------------------------
    Photo Gallery List
    -------------------------------------------------------------------------- */

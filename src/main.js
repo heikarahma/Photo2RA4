@@ -57,7 +57,8 @@ class Photo2RA4App {
 
     this.uploader = new UploadManager({
       onPhotosAdded: (newPhotos) => this.handlePhotosAdded(newPhotos),
-      onError: (msg) => this.showToast(msg, 'error')
+      onError: (msg) => this.showToast(msg, 'error'),
+      onInfo: (msg) => this.showToast(msg, 'info')
     });
 
     // Modals
