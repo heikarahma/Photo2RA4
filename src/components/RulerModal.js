@@ -41,7 +41,7 @@ export class RulerModal {
             </p>
 
             <!-- Specification Cards -->
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.75rem;">
+            <div class="ruler-spec-grid">
               <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 0.85rem;">
                 <div style="font-size: 0.72rem; color: var(--text-dim); text-transform: uppercase; font-weight: 700;">Ukuran 2R Standar</div>
                 <div style="font-size: 1.2rem; font-weight: 800; color: #60a5fa; margin: 0.2rem 0;">60 × 90 mm</div>
@@ -55,13 +55,13 @@ export class RulerModal {
               </div>
             </div>
 
-            <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: var(--radius-md); padding: 0.65rem 0.85rem; margin-bottom: 1.25rem; display: flex; align-items: center; justify-content: space-between;">
+            <div class="ruler-capacity-card">
               <span style="font-size: 0.75rem; color: #a7f3d0;">Kapasitas Lembar A4 (210 × 297 mm):</span>
               <b style="font-size: 0.95rem; color: #34d399;">9 Foto / Lembar (Grid 3 × 3)</b>
             </div>
 
             <!-- Visual Graphic Representation -->
-            <div style="background: #ffffff; color: #000; border-radius: var(--radius-md); padding: 1.5rem; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative;">
+            <div class="ruler-visual-card">
               <div style="width: 180px; height: 270px; border: 2px dashed #3b82f6; background: #f8fafc; border-radius: 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative;">
                 
                 <div style="position: absolute; top: -18px; font-size: 11px; font-weight: 700; color: #1e40af; font-family: var(--font-mono);">

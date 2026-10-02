@@ -21,12 +21,71 @@ export class PrintSettingsForm {
     this.render();
   }
 
+  renderSearchableSelect({ id, settingKey, options, getLabel, placeholder }) {
+    const selected = options.find(option => option.id === this.settings[settingKey]) || options[0];
+
+    return `
+      <div class="search-select" data-setting-key="${settingKey}">
+        <button
+          type="button"
+          class="search-select-trigger"
+          id="${id}"
+          aria-haspopup="listbox"
+          aria-expanded="false"
+        >
+          <span class="search-select-value">${this.escapeHtml(getLabel(selected))}</span>
+          <span class="search-select-icon" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </span>
+        </button>
+        <div class="search-select-panel">
+          <input
+            type="search"
+            class="search-select-input"
+            placeholder="${this.escapeHtml(placeholder)}"
+            aria-label="${this.escapeHtml(placeholder)}"
+          />
+          <div class="search-select-options" role="listbox" aria-labelledby="${id}">
+            ${options.map(option => {
+              const isSelected = option.id === selected.id;
+              return `
+                <button
+                  type="button"
+                  class="search-select-option ${isSelected ? 'selected' : ''}"
+                  role="option"
+                  aria-selected="${isSelected ? 'true' : 'false'}"
+                  data-value="${this.escapeHtml(option.id)}"
+                  data-search-text="${this.escapeHtml(getLabel(option).toLowerCase())}"
+                >
+                  <span>${this.escapeHtml(getLabel(option))}</span>
+                  <span class="search-select-check" aria-hidden="true">✓</span>
+                </button>
+              `;
+            }).join('')}
+          </div>
+          <div class="search-select-empty">Tidak ada pilihan yang cocok.</div>
+        </div>
+      </div>
+    `;
+  }
+
+  escapeHtml(value) {
+    return String(value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
   render() {
     if (!this.container) return;
 
     let html = `
-      <div class="glass-card">
-        <div class="card-header-bar">
+      <div class="glass-card settings-card">
+        <div class="card-header-bar settings-card-header">
           <div class="card-title">
             <span class="card-title-icon">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -37,32 +96,32 @@ export class PrintSettingsForm {
             </span>
             <span>Pengaturan Cetak</span>
           </div>
-          <span style="font-size:0.75rem; color:var(--text-muted);">Akurasi Fisik 100%</span>
+          <span class="settings-accuracy-note">Akurasi Fisik 100%</span>
         </div>
 
         <!-- Photo Size Selector -->
         <div class="form-group">
           <label class="form-label" for="setting-photo-size">Ukuran Foto</label>
-          <select id="setting-photo-size" class="select-custom">
-            ${PHOTO_SIZE_PRESETS.map(p => `
-              <option value="${p.id}" ${p.id === this.settings.photoSizeId ? 'selected' : ''}>
-                ${p.name}
-              </option>
-            `).join('')}
-          </select>
+          ${this.renderSearchableSelect({
+            id: 'setting-photo-size',
+            settingKey: 'photoSizeId',
+            options: PHOTO_SIZE_PRESETS,
+            getLabel: preset => preset.name,
+            placeholder: 'Cari ukuran foto...'
+          })}
         </div>
 
         <!-- Paper Size & Orientation -->
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.9rem;">
+        <div class="settings-two-col-grid">
           <div>
             <label class="form-label" for="setting-paper-size">Kertas</label>
-            <select id="setting-paper-size" class="select-custom">
-              ${PAPER_PRESETS.map(p => `
-                <option value="${p.id}" ${p.id === this.settings.paperId ? 'selected' : ''}>
-                  ${p.name} (${p.width}×${p.height}mm)
-                </option>
-              `).join('')}
-            </select>
+            ${this.renderSearchableSelect({
+              id: 'setting-paper-size',
+              settingKey: 'paperId',
+              options: PAPER_PRESETS,
+              getLabel: preset => `${preset.name} (${preset.width}×${preset.height}mm)`,
+              placeholder: 'Cari ukuran kertas...'
+            })}
           </div>
 
           <div>
@@ -126,7 +185,7 @@ export class PrintSettingsForm {
         </button>
 
         <div class="advanced-accordion-content" id="advanced-settings-panel">
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-top: 0.5rem;">
+          <div class="advanced-settings-grid">
             <div>
               <label class="form-label" for="setting-gap">Jarak Antar Foto (mm)</label>
               <input type="number" id="setting-gap" class="input-custom" min="0" max="20" step="0.5" value="${this.settings.gap}" />
@@ -149,23 +208,7 @@ export class PrintSettingsForm {
   }
 
   bindEvents() {
-    // Photo Size
-    const photoSelect = this.container.querySelector('#setting-photo-size');
-    if (photoSelect) {
-      photoSelect.addEventListener('change', (e) => {
-        this.settings.photoSizeId = e.target.value;
-        this.onSettingsChange(this.settings);
-      });
-    }
-
-    // Paper Size
-    const paperSelect = this.container.querySelector('#setting-paper-size');
-    if (paperSelect) {
-      paperSelect.addEventListener('change', (e) => {
-        this.settings.paperId = e.target.value;
-        this.onSettingsChange(this.settings);
-      });
-    }
+    this.bindSearchableSelects();
 
     // Paper Orientation
     this.container.querySelectorAll('#control-paper-orientation .segmented-btn').forEach(btn => {
@@ -241,5 +284,103 @@ export class PrintSettingsForm {
         this.onSettingsChange(this.settings);
       });
     }
+  }
+
+  bindSearchableSelects() {
+    if (this.handleDocumentClick) {
+      document.removeEventListener('click', this.handleDocumentClick);
+    }
+
+    const closeAllSelects = () => {
+      this.container.querySelectorAll('.search-select.open').forEach(select => {
+        select.classList.remove('open');
+        select.querySelector('.search-select-trigger')?.setAttribute('aria-expanded', 'false');
+      });
+    };
+
+    this.container.querySelectorAll('.search-select').forEach(select => {
+      const trigger = select.querySelector('.search-select-trigger');
+      const input = select.querySelector('.search-select-input');
+      const options = Array.from(select.querySelectorAll('.search-select-option'));
+      const emptyState = select.querySelector('.search-select-empty');
+      const settingKey = select.getAttribute('data-setting-key');
+
+      const filterOptions = () => {
+        const query = (input?.value || '').trim().toLowerCase();
+        let visibleCount = 0;
+
+        options.forEach(option => {
+          const matches = option.getAttribute('data-search-text')?.includes(query);
+          option.hidden = !matches;
+          if (matches) visibleCount++;
+        });
+
+        if (emptyState) emptyState.style.display = visibleCount ? 'none' : 'block';
+      };
+
+      trigger?.addEventListener('click', () => {
+        const willOpen = !select.classList.contains('open');
+        closeAllSelects();
+
+        if (willOpen) {
+          select.classList.add('open');
+          trigger.setAttribute('aria-expanded', 'true');
+          if (input) {
+            input.value = '';
+            filterOptions();
+            setTimeout(() => input.focus(), 0);
+          }
+        }
+      });
+
+      input?.addEventListener('input', filterOptions);
+
+      input?.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+          closeAllSelects();
+          trigger?.focus();
+        }
+        if (event.key === 'ArrowDown') {
+          event.preventDefault();
+          options.find(option => !option.hidden)?.focus();
+        }
+      });
+
+      options.forEach((option, index) => {
+        option.addEventListener('click', () => {
+          const value = option.getAttribute('data-value');
+          if (settingKey && value) {
+            this.settings[settingKey] = value;
+            this.render();
+            this.onSettingsChange(this.settings);
+          }
+        });
+
+        option.addEventListener('keydown', (event) => {
+          if (event.key === 'Escape') {
+            closeAllSelects();
+            trigger?.focus();
+          }
+          if (event.key === 'ArrowDown') {
+            event.preventDefault();
+            const next = options.slice(index + 1).find(item => !item.hidden);
+            next?.focus();
+          }
+          if (event.key === 'ArrowUp') {
+            event.preventDefault();
+            const previous = options.slice(0, index).reverse().find(item => !item.hidden);
+            if (previous) previous.focus();
+            else input?.focus();
+          }
+        });
+      });
+    });
+
+    this.handleDocumentClick = (event) => {
+      if (!this.container.contains(event.target)) {
+        closeAllSelects();
+      }
+    };
+    document.addEventListener('click', this.handleDocumentClick);
   }
 }

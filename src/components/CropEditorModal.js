@@ -68,7 +68,7 @@ export class CropEditorModal {
             </div>
 
             <!-- Controls -->
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
+            <div class="crop-controls-grid">
               <div>
                 <label class="form-label">Mode Tampilan</label>
                 <div class="segmented-control" id="modal-crop-mode">
@@ -93,7 +93,7 @@ export class CropEditorModal {
             <div style="margin-top: 1rem; padding: 0.75rem; background: rgba(15, 23, 42, 0.4); border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
               <label class="form-label" style="margin-bottom: 0.5rem;">Geser Posisi Foto</label>
               
-              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+              <div class="crop-offset-grid">
                 <div>
                   <span style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-bottom: 0.2rem;">Geser Kiri/Kanan</span>
                   <input type="range" id="slider-offset-x" min="-1" max="1" step="0.05" value="${offsetX}" style="width: 100%;" />
