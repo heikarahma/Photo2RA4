@@ -26,6 +26,11 @@ export class LayoutEngine {
     // 2. Resolve Photo preset
     const photoPreset = PHOTO_SIZE_PRESETS.find(p => p.id === mergedSettings.photoSizeId) || PHOTO_SIZE_PRESETS[0];
     
+    // If preset defaults to landscape and orientation was not explicitly set in settings
+    if (photoPreset.defaultOrientation === 'landscape' && !settings.photoOrientation) {
+      mergedSettings.photoOrientation = 'landscape';
+    }
+
     // Determine Slot Orientation
     let slotWidth = Math.min(photoPreset.width, photoPreset.height);
     let slotHeight = Math.max(photoPreset.width, photoPreset.height);
@@ -33,6 +38,9 @@ export class LayoutEngine {
     if (mergedSettings.photoOrientation === 'landscape') {
       slotWidth = Math.max(photoPreset.width, photoPreset.height);
       slotHeight = Math.min(photoPreset.width, photoPreset.height);
+    } else if (mergedSettings.photoOrientation === 'portrait') {
+      slotWidth = Math.min(photoPreset.width, photoPreset.height);
+      slotHeight = Math.max(photoPreset.width, photoPreset.height);
     } else if (mergedSettings.photoOrientation === 'auto') {
       // If auto: check which orientation fits more photos or matches paper
       const portraitCols = Math.floor((paperWidth - 2 * mergedSettings.margin + mergedSettings.gap) / (slotWidth + mergedSettings.gap));
@@ -48,6 +56,22 @@ export class LayoutEngine {
       if (landscapeCap > portraitCap) {
         slotWidth = landscapeSlotW;
         slotHeight = landscapeSlotH;
+      }
+    }
+
+    // Resolve Polaroid padding geometry for current slot orientation
+    let resolvedPolaroidPadding = photoPreset.polaroidPadding ? { ...photoPreset.polaroidPadding } : null;
+    if (photoPreset.isPolaroid && resolvedPolaroidPadding) {
+      if (slotWidth > slotHeight) {
+        // Landscape orientation: memo chin remains at the bottom
+        const topMargin = Math.min(resolvedPolaroidPadding.top, resolvedPolaroidPadding.left);
+        const sideMargin = Math.max(resolvedPolaroidPadding.left, resolvedPolaroidPadding.top);
+        resolvedPolaroidPadding = {
+          top: topMargin,
+          left: sideMargin,
+          right: sideMargin,
+          bottom: resolvedPolaroidPadding.bottom
+        };
       }
     }
 
@@ -151,7 +175,7 @@ export class LayoutEngine {
           rotation: item ? (item.photo.rotation || 0) : 0,
           cutMarks,
           isPolaroid: Boolean(photoPreset.isPolaroid),
-          polaroidPadding: photoPreset.polaroidPadding || null,
+          polaroidPadding: resolvedPolaroidPadding,
           positionLabel
         });
       }
@@ -183,7 +207,13 @@ export class LayoutEngine {
         height: paperHeight,
         orientation: isPaperLandscape ? 'landscape' : 'portrait'
       },
-      photoPreset,
+      photoPreset: {
+        ...photoPreset,
+        actualWidth: slotWidth,
+        actualHeight: slotHeight,
+        isLandscape: slotWidth > slotHeight,
+        polaroidPadding: resolvedPolaroidPadding
+      },
       slotDimensions: {
         width: slotWidth,
         height: slotHeight,

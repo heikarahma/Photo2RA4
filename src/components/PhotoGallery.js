@@ -11,6 +11,7 @@ export class PhotoGallery {
     this.onPhotoDelete = options.onPhotoDelete || (() => {});
     this.onPhotoRotate = options.onPhotoRotate || (() => {});
     this.onPhotoEditCrop = options.onPhotoEditCrop || (() => {});
+    this.onToggleCropMode = options.onToggleCropMode || (() => {});
     this.onPhotoMove = options.onPhotoMove || (() => {});
     this.onClearAll = options.onClearAll || (() => {});
 
@@ -131,6 +132,13 @@ export class PhotoGallery {
               </div>
 
               <!-- Rotate & Crop Actions -->
+              <button class="photo-btn-pill btn-toggle-crop-mode ${photo.cropMode === 'cover' ? 'active-cover' : ''}" data-photo-id="${photo.id}" title="${photo.cropMode === 'cover' ? 'Mode Penuh Aktif (Foto di-zoom/crop agar mengisi frame). Klik untuk mode Utuh tanpa zoom' : 'Mode Utuh Aktif (Foto utuh tanpa di-zoom). Klik untuk mode Penuh'}">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+                </svg>
+                <span>${photo.cropMode === 'cover' ? 'Penuh (Zoom)' : 'Utuh (No Zoom)'}</span>
+              </button>
+
               <button class="photo-btn-pill btn-rotate-photo" data-photo-id="${photo.id}" title="Putar 90°">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
@@ -264,6 +272,14 @@ export class PhotoGallery {
       btn.addEventListener('click', () => {
         const id = btn.getAttribute('data-photo-id');
         this.onPhotoEditCrop(id);
+      });
+    });
+
+    // Toggle Crop Mode (Fullkan / Fit)
+    this.container.querySelectorAll('.btn-toggle-crop-mode').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.getAttribute('data-photo-id');
+        this.onToggleCropMode(id);
       });
     });
 

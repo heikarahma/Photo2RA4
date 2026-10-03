@@ -111,6 +111,37 @@ export class PrintSettingsForm {
           })}
         </div>
 
+        <!-- Photo Frame Orientation (Portrait vs Landscape Frame) -->
+        <div class="form-group" style="margin-top: 0.65rem;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 0.35rem;">
+            <label class="form-label" style="margin-bottom:0;">Orientasi Frame Foto</label>
+            <span style="font-size:0.72rem; color:var(--primary-glow); font-weight:600;">
+              ${this.settings.photoOrientation === 'landscape' ? 'Frame Landscape (Mendatar)' : (this.settings.photoOrientation === 'auto' ? 'Otomatis' : 'Frame Portrait (Tegak)')}
+            </span>
+          </div>
+          <div class="segmented-control three-cols" id="control-photo-orientation">
+            <button type="button" class="segmented-btn ${this.settings.photoOrientation === 'portrait' ? 'active' : ''}" data-value="portrait" title="Frame foto berdiri / tegak">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="margin-right: 3px;">
+                <rect x="5" y="2" width="14" height="20" rx="2"/>
+              </svg>
+              <span>Tegak</span>
+            </button>
+            <button type="button" class="segmented-btn ${this.settings.photoOrientation === 'landscape' ? 'active' : ''}" data-value="landscape" title="Frame foto mendatar / landscape">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="margin-right: 3px;">
+                <rect x="2" y="5" width="20" height="14" rx="2"/>
+              </svg>
+              <span>Mendatar</span>
+            </button>
+            <button type="button" class="segmented-btn ${this.settings.photoOrientation === 'auto' ? 'active' : ''}" data-value="auto" title="Otomatis pilih orientasi frame paling efisien muat di kertas">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="margin-right: 3px;">
+                <circle cx="12" cy="12" r="8"/>
+                <path d="M12 8v8M8 12h8"/>
+              </svg>
+              <span>Otomatis</span>
+            </button>
+          </div>
+        </div>
+
         <!-- Paper Size & Orientation -->
         <div class="settings-two-col-grid">
           <div>
@@ -209,6 +240,16 @@ export class PrintSettingsForm {
 
   bindEvents() {
     this.bindSearchableSelects();
+
+    // Photo Frame Orientation (Portrait / Landscape / Auto)
+    this.container.querySelectorAll('#control-photo-orientation .segmented-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const val = btn.getAttribute('data-value');
+        this.settings.photoOrientation = val;
+        this.render();
+        this.onSettingsChange(this.settings);
+      });
+    });
 
     // Paper Orientation
     this.container.querySelectorAll('#control-paper-orientation .segmented-btn').forEach(btn => {
@@ -351,6 +392,12 @@ export class PrintSettingsForm {
           const value = option.getAttribute('data-value');
           if (settingKey && value) {
             this.settings[settingKey] = value;
+            if (settingKey === 'photoSizeId') {
+              const selectedPreset = PHOTO_SIZE_PRESETS.find(p => p.id === value);
+              if (selectedPreset?.defaultOrientation) {
+                this.settings.photoOrientation = selectedPreset.defaultOrientation;
+              }
+            }
             this.render();
             this.onSettingsChange(this.settings);
           }

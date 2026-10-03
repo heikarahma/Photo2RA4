@@ -10,8 +10,9 @@ export class CropEditorModal {
     this.render();
   }
 
-  open(photo) {
+  open(photo, slotInfo = null) {
     this.currentPhoto = JSON.parse(JSON.stringify(photo)); // clone
+    this.currentSlotInfo = slotInfo;
     this.render();
     const overlay = this.container.querySelector('.modal-overlay');
     if (overlay) overlay.classList.add('active');
@@ -21,6 +22,7 @@ export class CropEditorModal {
     const overlay = this.container.querySelector('.modal-overlay');
     if (overlay) overlay.classList.remove('active');
     this.currentPhoto = null;
+    this.currentSlotInfo = null;
   }
 
   render() {
@@ -39,14 +41,58 @@ export class CropEditorModal {
     const offsetX = photo.customCrop?.offsetX || 0;
     const offsetY = photo.customCrop?.offsetY || 0;
 
+    const slot = this.currentSlotInfo;
+    const slotW = slot?.width || 60;
+    const slotH = slot?.height || 90;
+    const isLandscape = slotW > slotH;
+    const aspect = slotW / slotH;
+
+    // Viewport frame dimensions matching exact aspect ratio
+    const maxBoxW = 280;
+    const maxBoxH = 260;
+    let frameWidth, frameHeight;
+
+    if (aspect >= 1) {
+      frameWidth = maxBoxW;
+      frameHeight = Math.round(maxBoxW / aspect);
+      if (frameHeight > maxBoxH) {
+        frameHeight = maxBoxH;
+        frameWidth = Math.round(maxBoxH * aspect);
+      }
+    } else {
+      frameHeight = maxBoxH;
+      frameWidth = Math.round(maxBoxH * aspect);
+      if (frameWidth > maxBoxW) {
+        frameWidth = maxBoxW;
+        frameHeight = Math.round(maxBoxW / aspect);
+      }
+    }
+
+    let innerFrameHtml = '';
+    if (slot?.isPolaroid && slot?.polaroidPadding) {
+      const pTop = (slot.polaroidPadding.top / slotH) * 100;
+      const pBottom = (slot.polaroidPadding.bottom / slotH) * 100;
+      const pLeft = (slot.polaroidPadding.left / slotW) * 100;
+      const pRight = (slot.polaroidPadding.right / slotW) * 100;
+      innerFrameHtml = `
+        <div style="position: absolute; top: ${pTop}%; bottom: ${pBottom}%; left: ${pLeft}%; right: ${pRight}%; border: 1.5px dashed rgba(255, 255, 255, 0.8); pointer-events: none; z-index: 12;" title="Batas foto di dalam bingkai polaroid"></div>
+      `;
+    }
+
     let html = `
       <div class="modal-overlay active" id="crop-modal-overlay">
         <div class="modal-dialog">
           
           <div class="modal-header">
-            <div style="display:flex; align-items:center; gap:0.5rem;">
-              <span style="color:var(--primary); font-size:1.1rem;">✂️</span>
-              <h3 style="font-size:1rem; font-weight:700;">Sesuaikan Foto: ${photo.name}</h3>
+            <div style="display:flex; align-items:center; gap:0.65rem;">
+              <span style="color:var(--primary); font-size:1.2rem;">✂️</span>
+              <div>
+                <h3 style="font-size:0.95rem; font-weight:700; margin:0;">Sesuaikan Foto: ${photo.name}</h3>
+                <div style="font-size:0.72rem; color:var(--text-muted); display:flex; gap:0.5rem; align-items:center; margin-top:0.15rem;">
+                  <span>Frame: <b>${slotW} × ${slotH} mm</b></span>
+                  <span class="brand-badge" style="font-size:0.65rem; padding:1px 6px;">${isLandscape ? 'Landscape (Mendatar)' : 'Portrait (Tegak)'}</span>
+                </div>
+              </div>
             </div>
             <button class="btn btn-subtle btn-sm" id="btn-close-crop-modal">✕</button>
           </div>
@@ -54,7 +100,9 @@ export class CropEditorModal {
           <div class="modal-body">
             <!-- Crop Visual Canvas with Direct Drag / Pan Support -->
             <div class="crop-preview-box" id="crop-viewport" title="Klik dan geser foto untuk mengatur posisi framing">
-              <div class="crop-target-frame" style="width: 200px; height: 300px; border-radius: 2px;"></div>
+              <div class="crop-target-frame" style="width: ${frameWidth}px; height: ${frameHeight}px; border-radius: 2px;">
+                ${innerFrameHtml}
+              </div>
               
               <div class="crop-pan-canvas" id="crop-pan-canvas">
                 <img id="crop-preview-img" 
@@ -78,7 +126,7 @@ export class CropEditorModal {
                   <path d="M5 9l-3 3 3 3M9 5l3-3 3 3M15 19l-3 3-3-3M19 9l3 3-3 3"/>
                   <circle cx="12" cy="12" r="2"/>
                 </svg>
-                <span>Geser langsung pada foto untuk memindahkan posisi</span>
+                <span>Geser foto untuk mengatur posisi framing</span>
               </div>
             </div>
 

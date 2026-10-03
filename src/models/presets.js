@@ -60,6 +60,21 @@ export const PHOTO_SIZE_PRESETS = [
     isDefault: false
   },
   {
+    id: 'polaroid-2r-land',
+    code: 'Polaroid 2R Land',
+    name: 'Polaroid 2R Landscape — 9 × 6 cm (Bingkai Horizontal)',
+    shortName: 'Polaroid Landscape (9 × 6 cm)',
+    width: 90,
+    height: 60,
+    unit: 'mm',
+    aspectRatio: 90 / 60,
+    isPolaroid: true,
+    polaroidPadding: { top: 5, left: 6, right: 6, bottom: 15 },
+    defaultOrientation: 'landscape',
+    description: 'Ukuran 2R format landscape (90 × 60 mm) dengan bingkai putih khas polaroid & memo di bawah.',
+    isDefault: false
+  },
+  {
     id: 'polaroid-instax',
     code: 'Instax Mini',
     name: 'Polaroid Instax Mini — 5.4 × 8.6 cm',
@@ -71,6 +86,21 @@ export const PHOTO_SIZE_PRESETS = [
     isPolaroid: true,
     polaroidPadding: { top: 5, left: 4, right: 4, bottom: 15 },
     description: 'Ukuran format film Fujifilm Instax Mini (54 × 86 mm) dengan frame instan. Muat 9 foto per lembar A4.',
+    isDefault: false
+  },
+  {
+    id: 'polaroid-instax-wide',
+    code: 'Instax Wide',
+    name: 'Polaroid Instax Wide — 10.8 × 8.6 cm (Landscape)',
+    shortName: 'Instax Wide (10.8 × 8.6 cm)',
+    width: 108,
+    height: 86,
+    unit: 'mm',
+    aspectRatio: 108 / 86,
+    isPolaroid: true,
+    polaroidPadding: { top: 6, left: 6, right: 6, bottom: 16 },
+    defaultOrientation: 'landscape',
+    description: 'Format film Fujifilm Instax Wide (108 × 86 mm) bingkai foto instan horizontal.',
     isDefault: false
   },
   {

@@ -41,6 +41,7 @@ class Photo2RA4App {
       onPhotoDelete: (id) => this.handlePhotoDelete(id),
       onPhotoRotate: (id) => this.handlePhotoRotate(id),
       onPhotoEditCrop: (id) => this.handleOpenCrop(id),
+      onToggleCropMode: (id) => this.handleToggleCropMode(id),
       onPhotoMove: (fromIdx, toIdx) => this.handlePhotoMove(fromIdx, toIdx),
       onClearAll: () => this.handleClearAll()
     });
@@ -54,6 +55,9 @@ class Photo2RA4App {
       onSwapSlots: (photoIdA, photoIdB) => this.handleSwapPhotos(photoIdA, photoIdB),
       onMoveToSlot: (draggedPhotoId, targetSlotIndex) => this.handleMoveToSlot(draggedPhotoId, targetSlotIndex),
       onEmptySlotClick: (slotIndex) => this.handleEmptySlotClick(slotIndex),
+      onToggleOrientation: () => this.handleTogglePhotoOrientation(),
+      onToggleCropMode: (photoId) => this.handleToggleCropMode(photoId),
+      onPhotoRotate: (photoId) => this.handlePhotoRotate(photoId),
       onPageChange: (pageIndex) => {
         this.currentPageIndex = pageIndex;
         this.updatePaginationUI();
@@ -189,6 +193,23 @@ class Photo2RA4App {
     }
   }
 
+  handleToggleCropMode(id) {
+    const photo = this.photos.find(p => p.id === id);
+    if (photo) {
+      photo.cropMode = photo.cropMode === 'cover' ? 'fit' : 'cover';
+      this.gallery.setPhotos(this.photos);
+      this.recalculateLayout();
+
+      const isCover = photo.cropMode === 'cover';
+      this.showToast(
+        isCover 
+          ? `Foto diubah ke mode Penuh (Full frame tanpa sisa tepi)!` 
+          : `Foto diubah ke mode Muat Utuh (Fit)!`, 
+        'success'
+      );
+    }
+  }
+
   handlePhotoMove(fromIndex, toIndex) {
     if (fromIndex < 0 || fromIndex >= this.photos.length || toIndex < 0 || toIndex >= this.photos.length || fromIndex === toIndex) {
       return;
@@ -279,7 +300,8 @@ class Photo2RA4App {
   handleOpenCrop(id) {
     const photo = this.photos.find(p => p.id === id);
     if (photo) {
-      this.cropModal.open(photo);
+      const slot = this.layout?.pages?.flatMap(p => p.slots)?.find(s => s.photo?.id === id);
+      this.cropModal.open(photo, slot);
     }
   }
 
@@ -309,6 +331,31 @@ class Photo2RA4App {
     this.recalculateLayout();
   }
 
+  handleTogglePhotoOrientation(forcedValue = null) {
+    let nextOrientation = forcedValue;
+    if (!nextOrientation) {
+      nextOrientation = this.settings.photoOrientation === 'landscape' ? 'portrait' : 'landscape';
+    }
+    this.settings.photoOrientation = nextOrientation;
+
+    // When switching to landscape frame, reset 90-degree rotations on landscape photos so they sit upright!
+    if (nextOrientation === 'landscape') {
+      this.photos.forEach(p => {
+        if (p.naturalWidth > p.naturalHeight && (p.rotation === 90 || p.rotation === 270)) {
+          p.rotation = 0;
+        }
+      });
+    }
+
+    this.settingsForm.updateSettings(this.settings);
+    this.gallery.setPhotos(this.photos, this.buildSlotInfoMap());
+    this.recalculateLayout();
+
+    const isLand = nextOrientation === 'landscape';
+    const label = isLand ? 'Mendatar / Landscape (90×60 mm)' : 'Tegak / Portrait (60×90 mm)';
+    this.showToast(`Frame diubah ke ${label}! Foto landscape pas tanpa di-zoom.`, 'success');
+  }
+
   updateStatsUI() {
     const totalPhotosEl = document.getElementById('stat-total-photos');
     const totalPagesEl = document.getElementById('stat-total-pages');
@@ -321,8 +368,23 @@ class Photo2RA4App {
 
     if (totalPhotosEl) totalPhotosEl.textContent = `${this.layout.totalPhotos} Foto`;
     if (totalPagesEl) totalPagesEl.textContent = `${this.layout.totalPages} Lembar ${this.layout.paper.preset.name}`;
-    if (photoSizeEl) photoSizeEl.textContent = this.layout.photoPreset.shortName;
+    if (photoSizeEl) {
+      const slotW = this.layout.slotDimensions.width;
+      const slotH = this.layout.slotDimensions.height;
+      const isLand = slotW > slotH;
+      photoSizeEl.textContent = `${this.layout.photoPreset.code} (${slotW}×${slotH}mm • ${isLand ? 'Landscape' : 'Portrait'})`;
+    }
     if (paperNameEl) paperNameEl.textContent = `${this.layout.paper.width}×${this.layout.paper.height}mm`;
+
+    // Update Quick Orientation Switcher buttons in toolbar
+    const quickPortraitBtn = document.getElementById('btn-quick-frame-portrait');
+    const quickLandscapeBtn = document.getElementById('btn-quick-frame-landscape');
+    const isLandscape = this.layout.slotDimensions.width > this.layout.slotDimensions.height;
+
+    if (quickPortraitBtn && quickLandscapeBtn) {
+      quickPortraitBtn.classList.toggle('active', !isLandscape);
+      quickLandscapeBtn.classList.toggle('active', isLandscape);
+    }
 
     const hasPhotos = this.layout.totalPhotos > 0;
     if (ctaDownloadBtn) {
@@ -368,6 +430,22 @@ class Photo2RA4App {
   }
 
   bindGlobalActions() {
+    // Quick Frame Orientation Buttons (Toolbar)
+    const quickPortraitBtn = document.getElementById('btn-quick-frame-portrait');
+    const quickLandscapeBtn = document.getElementById('btn-quick-frame-landscape');
+
+    if (quickPortraitBtn) {
+      quickPortraitBtn.addEventListener('click', () => {
+        this.handleTogglePhotoOrientation('portrait');
+      });
+    }
+
+    if (quickLandscapeBtn) {
+      quickLandscapeBtn.addEventListener('click', () => {
+        this.handleTogglePhotoOrientation('landscape');
+      });
+    }
+
     // Pagination buttons
     const prevBtn = document.getElementById('btn-prev-page');
     const nextBtn = document.getElementById('btn-next-page');

@@ -13,6 +13,9 @@ export class LayoutPreview {
     this.onSwapSlots = options.onSwapSlots || (() => {});
     this.onMoveToSlot = options.onMoveToSlot || (() => {});
     this.onEmptySlotClick = options.onEmptySlotClick || (() => {});
+    this.onToggleOrientation = options.onToggleOrientation || (() => {});
+    this.onToggleCropMode = options.onToggleCropMode || (() => {});
+    this.onPhotoRotate = options.onPhotoRotate || (() => {});
     this.onPageChange = options.onPageChange || (() => {});
 
     this.draggedSlotPhotoId = null;
@@ -95,6 +98,15 @@ export class LayoutPreview {
               <span class="empty-slot-pos-badge">#${slot.globalIndex + 1}</span>
               <span class="empty-slot-label">${slot.positionLabel}</span>
               <span class="empty-slot-hint">Klik/Tarik ke sini</span>
+              <button type="button" class="empty-slot-orient-btn" title="Ubah orientasi semua frame foto ke ${slot.width > slot.height ? 'Tegak (Portrait)' : 'Mendatar (Landscape)'}">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                  <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                  <path d="M3 3v5h5"/>
+                  <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
+                  <path d="M16 21h5v-5"/>
+                </svg>
+                <span>${slot.width > slot.height ? 'Frame Mendatar' : 'Ubah ke Landscape'}</span>
+              </button>
             </div>
 
             <!-- Drop Target Indicator Overlay -->
@@ -123,8 +135,11 @@ export class LayoutPreview {
       const objPosY = 50 - (offsetY * 50);
 
       const isPolaroid = Boolean(slot.isPolaroid && slot.polaroidPadding);
-      let innerContainerStyle = 'position: absolute; inset: 0; overflow: hidden; background: #e2e8f0;';
+      const isSlotLandscape = slot.width > slot.height;
+      let innerContainerStyle = 'position: absolute; inset: 0; overflow: hidden; background: #ffffff;';
       let slotExtraStyle = '';
+      let innerW = widthPx;
+      let innerH = heightPx;
 
       if (isPolaroid) {
         const pTop = slot.polaroidPadding.top * mmToPx;
@@ -132,8 +147,19 @@ export class LayoutPreview {
         const pRight = slot.polaroidPadding.right * mmToPx;
         const pBottom = slot.polaroidPadding.bottom * mmToPx;
 
+        innerW = widthPx - pLeft - pRight;
+        innerH = heightPx - pTop - pBottom;
+
         slotExtraStyle = 'background: #ffffff; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12); border: 1px solid #e2e8f0;';
         innerContainerStyle = `position: absolute; left: ${pLeft}px; top: ${pTop}px; right: ${pRight}px; bottom: ${pBottom}px; overflow: hidden; background: #0f172a; border: 1px solid rgba(0, 0, 0, 0.06);`;
+      }
+
+      const isRotated90 = (rotation % 180) !== 0;
+      let imgStyle = '';
+      if (isRotated90) {
+        imgStyle = `position: absolute; left: 50%; top: 50%; width: ${innerH}px; height: ${innerW}px; transform: translate(-50%, -50%) rotate(${rotation}deg); object-fit: ${objectFit}; object-position: ${objPosX}% ${objPosY}%; pointer-events: none;`;
+      } else {
+        imgStyle = `position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(${rotation}deg); object-fit: ${objectFit}; object-position: ${objPosX}% ${objPosY}%; pointer-events: none;`;
       }
 
       html += `
@@ -149,7 +175,7 @@ export class LayoutPreview {
             <img src="${slot.photo.previewUrl || slot.photo.url}" 
                  alt="${slot.photo.name}" 
                  draggable="false"
-                 style="transform: rotate(${rotation}deg); object-fit: ${objectFit}; object-position: ${objPosX}% ${objPosY}%; width: 100%; height: 100%; pointer-events: none;" />
+                 style="${imgStyle}" />
           </div>
 
           <!-- Position & Move Badge -->
@@ -158,6 +184,30 @@ export class LayoutPreview {
               <path d="M7 16V4m0 0L3 8m4-4l4 4m6 4v12m0 0l4-4m-4 4l-4-4"/>
             </svg>
             <span>#${slot.globalIndex + 1} ${slot.positionLabel}</span>
+          </div>
+
+          <!-- Slot Quick Actions -->
+          <div class="slot-quick-actions">
+            <button type="button" class="slot-quick-action-btn btn-slot-orient-toggle" title="Ubah frame cetak ke ${isSlotLandscape ? 'Tegak / Portrait (60×90mm)' : 'Mendatar / Landscape (90×60mm) agar foto landscape pas tanpa zoom'}">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                ${isSlotLandscape 
+                  ? '<rect x="5" y="2" width="14" height="20" rx="2"/>' 
+                  : '<rect x="2" y="5" width="20" height="14" rx="2"/>'}
+              </svg>
+              <span>${isSlotLandscape ? 'Frame Tegak' : 'Frame Landscape'}</span>
+            </button>
+            <button type="button" class="slot-quick-action-btn btn-slot-crop-toggle ${cropMode === 'cover' ? 'active-cover' : ''}" data-photo-id="${slot.photo.id}" title="${cropMode === 'cover' ? 'Mode Penuh Aktif (Foto di-zoom/crop agar mengisi frame). Klik untuk mode Utuh tanpa zoom' : 'Mode Utuh Aktif (Foto utuh tanpa di-zoom). Klik untuk mode Penuh'}">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+              </svg>
+              <span>${cropMode === 'cover' ? 'Penuh (Zoom)' : 'Utuh (No Zoom)'}</span>
+            </button>
+            <button type="button" class="slot-quick-action-btn btn-slot-rotate" data-photo-id="${slot.photo.id}" title="Putar orientasi foto 90°">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+              </svg>
+              <span>Putar</span>
+            </button>
           </div>
 
           <!-- Drop Target Indicator Overlay -->
@@ -312,6 +362,44 @@ export class LayoutPreview {
         el.addEventListener('click', () => {
           if (this.justDragged) return;
           this.onEmptySlotClick(slotIndex);
+        });
+      }
+
+      // Empty slot orientation toggle button
+      const orientBtn = el.querySelector('.empty-slot-orient-btn');
+      if (orientBtn) {
+        orientBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.onToggleOrientation();
+        });
+      }
+
+      // Slot Quick Action: Toggle Frame Orientation on occupied slot
+      const slotOrientBtn = el.querySelector('.btn-slot-orient-toggle');
+      if (slotOrientBtn) {
+        slotOrientBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.onToggleOrientation();
+        });
+      }
+
+      // Slot Quick Action: Toggle Crop Mode (Fullkan / Fit)
+      const cropToggleBtn = el.querySelector('.btn-slot-crop-toggle');
+      if (cropToggleBtn) {
+        cropToggleBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const photoId = cropToggleBtn.getAttribute('data-photo-id');
+          this.onToggleCropMode(photoId);
+        });
+      }
+
+      // Slot Quick Action: Rotate
+      const rotateBtn = el.querySelector('.btn-slot-rotate');
+      if (rotateBtn) {
+        rotateBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const photoId = rotateBtn.getAttribute('data-photo-id');
+          this.onPhotoRotate(photoId);
         });
       }
 

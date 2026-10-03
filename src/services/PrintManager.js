@@ -36,16 +36,29 @@ export class PrintManager {
         let innerWrapperStyle = `position: absolute; inset: 0; overflow: hidden;`;
         let slotExtraStyle = '';
 
+        let innerW = slot.width;
+        let innerH = slot.height;
+
         if (isPolaroid) {
           const { top, left, right, bottom } = slot.polaroidPadding;
           slotExtraStyle = 'background: #ffffff; box-sizing: border-box;';
           innerWrapperStyle = `position: absolute; left: ${left}mm; top: ${top}mm; right: ${right}mm; bottom: ${bottom}mm; overflow: hidden; background: #000;`;
+          innerW = slot.width - left - right;
+          innerH = slot.height - top - bottom;
+        }
+
+        const isRotated90 = (rotation % 180) !== 0;
+        let imgStyle = '';
+        if (isRotated90) {
+          imgStyle = `position: absolute; left: 50%; top: 50%; width: ${innerH}mm; height: ${innerW}mm; transform: translate(-50%, -50%) rotate(${rotation}deg); object-fit: ${objectFit};`;
+        } else {
+          imgStyle = `position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(${rotation}deg); object-fit: ${objectFit};`;
         }
 
         html += `
           <div class="physical-print-slot ${isPolaroid ? 'is-polaroid' : ''}" style="left: ${slot.x}mm; top: ${slot.y}mm; width: ${slot.width}mm; height: ${slot.height}mm; ${slotExtraStyle}">
             <div class="slot-image-wrapper" style="${innerWrapperStyle}">
-              <img src="${slot.photo.previewUrl || slot.photo.url}" alt="" style="transform: rotate(${rotation}deg); object-fit: ${objectFit}; width: 100%; height: 100%;" />
+              <img src="${slot.photo.previewUrl || slot.photo.url}" alt="" style="${imgStyle}" />
             </div>
             ${settings.showCuttingGuides ? this.renderHtmlCuttingGuides(slot, settings.cuttingGuideType) : ''}
           </div>
