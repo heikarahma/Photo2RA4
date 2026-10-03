@@ -27,6 +27,7 @@ export class PrintManager {
       `;
 
       page.slots.forEach((slot) => {
+        if (!slot.photo) return;
         const rotation = slot.photo.rotation || 0;
         const cropMode = slot.cropMode;
         const objectFit = cropMode === 'fit' ? 'contain' : 'cover';

@@ -45,6 +45,7 @@ export class PDFGenerator {
       for (let sIdx = 0; sIdx < page.slots.length; sIdx++) {
         const slot = page.slots[sIdx];
         const photo = slot.photo;
+        if (!photo) continue;
 
         try {
           const polaroidOptions = slot.isPolaroid && slot.polaroidPadding

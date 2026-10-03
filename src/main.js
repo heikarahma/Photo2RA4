@@ -21,6 +21,7 @@ class Photo2RA4App {
   constructor() {
     this.photos = [];
     this.settings = { ...DEFAULT_SETTINGS };
+    this.slotAssignments = {}; // { [globalSlotIndex]: photoKey }
     this.layout = null;
     this.currentPageIndex = 0;
     this.zoomLevel = 1.0;
@@ -40,6 +41,7 @@ class Photo2RA4App {
       onPhotoDelete: (id) => this.handlePhotoDelete(id),
       onPhotoRotate: (id) => this.handlePhotoRotate(id),
       onPhotoEditCrop: (id) => this.handleOpenCrop(id),
+      onPhotoMove: (fromIdx, toIdx) => this.handlePhotoMove(fromIdx, toIdx),
       onClearAll: () => this.handleClearAll()
     });
 
@@ -49,6 +51,9 @@ class Photo2RA4App {
 
     this.preview = new LayoutPreview(this.previewContainer, {
       onSlotClick: (photoId) => this.handleOpenCrop(photoId),
+      onSwapSlots: (photoIdA, photoIdB) => this.handleSwapPhotos(photoIdA, photoIdB),
+      onMoveToSlot: (draggedPhotoId, targetSlotIndex) => this.handleMoveToSlot(draggedPhotoId, targetSlotIndex),
+      onEmptySlotClick: (slotIndex) => this.handleEmptySlotClick(slotIndex),
       onPageChange: (pageIndex) => {
         this.currentPageIndex = pageIndex;
         this.updatePaginationUI();
@@ -91,9 +96,59 @@ class Photo2RA4App {
     this.recalculateLayout();
   }
 
+  syncSlotAssignments() {
+    // Generate valid keys for all photo instances
+    const activePhotoKeys = [];
+    this.photos.forEach(photo => {
+      const qty = Math.max(1, photo.quantity || 1);
+      for (let i = 0; i < qty; i++) {
+        activePhotoKeys.push(qty > 1 ? `${photo.id}__${i}` : photo.id);
+      }
+    });
+
+    // Remove deleted photos from slot assignments
+    for (const [slotStr, val] of Object.entries(this.slotAssignments)) {
+      if (val && !activePhotoKeys.includes(val) && !this.photos.some(p => p.id === val)) {
+        delete this.slotAssignments[slotStr];
+      }
+    }
+
+    // Assign unassigned photo instances to the first available empty slots
+    for (const key of activePhotoKeys) {
+      const alreadyAssigned = Object.values(this.slotAssignments).includes(key);
+      if (!alreadyAssigned) {
+        let candidateSlot = 0;
+        while (this.slotAssignments[candidateSlot]) {
+          candidateSlot++;
+        }
+        this.slotAssignments[candidateSlot] = key;
+      }
+    }
+  }
+
+  buildSlotInfoMap() {
+    const map = {};
+    if (!this.layout || !this.layout.pages) return map;
+    this.layout.pages.forEach(page => {
+      page.slots.forEach(slot => {
+        if (slot.photo) {
+          map[slot.photo.id] = {
+            slotIndex: slot.slotIndex,
+            globalIndex: slot.globalIndex,
+            number: slot.globalIndex + 1,
+            label: slot.positionLabel
+          };
+        }
+      });
+    });
+    return map;
+  }
+
   recalculateLayout() {
-    this.layout = LayoutEngine.computeLayout(this.photos, this.settings);
+    this.syncSlotAssignments();
+    this.layout = LayoutEngine.computeLayout(this.photos, this.settings, this.slotAssignments);
     this.preview.setLayout(this.layout);
+    this.gallery.setPhotos(this.photos, this.buildSlotInfoMap());
     this.updateStatsUI();
     this.updatePaginationUI();
   }
@@ -134,6 +189,93 @@ class Photo2RA4App {
     }
   }
 
+  handlePhotoMove(fromIndex, toIndex) {
+    if (fromIndex < 0 || fromIndex >= this.photos.length || toIndex < 0 || toIndex >= this.photos.length || fromIndex === toIndex) {
+      return;
+    }
+    const [movedPhoto] = this.photos.splice(fromIndex, 1);
+    this.photos.splice(toIndex, 0, movedPhoto);
+
+    // Reset slot assignments to follow the new gallery order
+    this.slotAssignments = {};
+    this.gallery.setPhotos(this.photos);
+    this.recalculateLayout();
+    this.showToast(`Urutan foto #${fromIndex + 1} dipindahkan ke posisi #${toIndex + 1}`, 'info');
+  }
+
+  handleMoveToSlot(photoId, targetSlotIndex) {
+    let sourceSlot = null;
+    let assignedKey = null;
+
+    for (const [slotStr, val] of Object.entries(this.slotAssignments)) {
+      if (val === photoId || (typeof val === 'string' && val.startsWith(`${photoId}__`))) {
+        sourceSlot = parseInt(slotStr, 10);
+        assignedKey = val;
+        break;
+      }
+    }
+
+    if (assignedKey === null || sourceSlot === targetSlotIndex) return;
+
+    // Check if target slot is already occupied
+    const targetVal = this.slotAssignments[targetSlotIndex];
+    if (targetVal) {
+      // Swap places
+      this.slotAssignments[sourceSlot] = targetVal;
+      this.slotAssignments[targetSlotIndex] = assignedKey;
+    } else {
+      // Move to empty slot
+      delete this.slotAssignments[sourceSlot];
+      this.slotAssignments[targetSlotIndex] = assignedKey;
+    }
+
+    this.recalculateLayout();
+
+    const targetSlotObj = this.layout?.pages?.flatMap(p => p.slots)?.find(s => s.globalIndex === targetSlotIndex);
+    const posName = targetSlotObj ? ` #${targetSlotIndex + 1} (${targetSlotObj.positionLabel})` : ` #${targetSlotIndex + 1}`;
+    this.showToast(`Foto ditempatkan di posisi${posName}!`, 'success');
+  }
+
+  handleSwapPhotos(photoIdA, photoIdB) {
+    let slotA = null;
+    let slotB = null;
+
+    for (const [slotStr, val] of Object.entries(this.slotAssignments)) {
+      if (val === photoIdA || (typeof val === 'string' && val.startsWith(`${photoIdA}__`))) {
+        slotA = parseInt(slotStr, 10);
+      }
+      if (val === photoIdB || (typeof val === 'string' && val.startsWith(`${photoIdB}__`))) {
+        slotB = parseInt(slotStr, 10);
+      }
+    }
+
+    if (slotA !== null && slotB !== null && slotA !== slotB) {
+      const temp = this.slotAssignments[slotA];
+      this.slotAssignments[slotA] = this.slotAssignments[slotB];
+      this.slotAssignments[slotB] = temp;
+      this.recalculateLayout();
+      this.showToast(`Posisi foto #${slotA + 1} dan #${slotB + 1} berhasil ditukar!`, 'success');
+    }
+  }
+
+  handleEmptySlotClick(targetSlotIndex) {
+    if (this.photos.length === 0) {
+      this.showToast('Silakan upload atau pilih foto terlebih dahulu.', 'info');
+      return;
+    }
+
+    if (this.photos.length === 1) {
+      // Jika hanya ada 1 foto: langsung tempatkan di slot kosong ini!
+      this.handleMoveToSlot(this.photos[0].id, targetSlotIndex);
+      return;
+    }
+
+    // Jika lebih dari 1 foto, tempatkan foto pertama atau tampilkan panduan tarik
+    const targetSlotObj = this.layout?.pages?.flatMap(p => p.slots)?.find(s => s.globalIndex === targetSlotIndex);
+    const posName = targetSlotObj ? ` #${targetSlotIndex + 1} (${targetSlotObj.positionLabel})` : ` #${targetSlotIndex + 1}`;
+    this.showToast(`Tarik foto mana saja ke posisi${posName} untuk menaruhnya di sini.`, 'info');
+  }
+
   handleOpenCrop(id) {
     const photo = this.photos.find(p => p.id === id);
     if (photo) {
@@ -156,6 +298,7 @@ class Photo2RA4App {
       if (p.previewUrl?.startsWith('blob:')) URL.revokeObjectURL(p.previewUrl);
     });
     this.photos = [];
+    this.slotAssignments = {};
     this.gallery.setPhotos(this.photos);
     this.recalculateLayout();
     this.showToast('Semua foto dibersihkan.', 'info');

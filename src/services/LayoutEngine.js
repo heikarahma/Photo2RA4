@@ -14,7 +14,7 @@ export class LayoutEngine {
    * @param {Object} settings - Print settings
    * @returns {Object} Layout result with pages, slots, and stats
    */
-  static computeLayout(photos = [], settings = {}) {
+  static computeLayout(photos = [], settings = {}, slotAssignments = null) {
     const mergedSettings = { ...DEFAULT_SETTINGS, ...settings };
     
     // 1. Resolve Paper preset and physical dimensions
@@ -77,52 +77,82 @@ export class LayoutEngine {
       for (let i = 0; i < qty; i++) {
         photoInstances.push({
           photo,
-          instanceIndex: i
+          instanceIndex: i,
+          key: qty > 1 ? `${photo.id}__${i}` : photo.id
         });
       }
     });
 
     const totalPhotos = photoInstances.length;
-    const totalPages = totalPhotos === 0 ? 1 : Math.ceil(totalPhotos / capacityPerPage);
 
-    // 5. Generate pages and assign slots
+    // Calculate total pages based on highest occupied slot or photo count
+    let maxAssignedSlot = -1;
+    if (slotAssignments) {
+      for (const [slotKey, val] of Object.entries(slotAssignments)) {
+        if (val !== null && val !== undefined) {
+          const idx = parseInt(slotKey, 10);
+          if (!isNaN(idx) && idx > maxAssignedSlot) {
+            maxAssignedSlot = idx;
+          }
+        }
+      }
+    }
+
+    let totalPages = 1;
+    if (maxAssignedSlot >= 0) {
+      totalPages = Math.max(1, Math.floor(maxAssignedSlot / capacityPerPage) + 1);
+    } else if (totalPhotos > 0) {
+      totalPages = Math.ceil(totalPhotos / capacityPerPage);
+    }
+
+    // 5. Generate pages and render complete grid slots (including empty slots)
     const pages = [];
     for (let p = 0; p < totalPages; p++) {
       const pageSlots = [];
-      const startIdx = p * capacityPerPage;
-      const endIdx = Math.min(startIdx + capacityPerPage, totalPhotos);
 
-      // Create slots for the actual photos on this page
-      for (let idx = startIdx; idx < endIdx; idx++) {
-        const item = photoInstances[idx];
-        const slotInPage = idx - startIdx;
+      for (let slotInPage = 0; slotInPage < capacityPerPage; slotInPage++) {
+        const globalIndex = p * capacityPerPage + slotInPage;
         const col = slotInPage % cols;
         const row = Math.floor(slotInPage / cols);
 
         const x = Number((startX + col * (slotWidth + gap)).toFixed(2));
         const y = Number((startY + row * (slotHeight + gap)).toFixed(2));
 
-        // Generate cutting guide coordinate geometry (corner marks & lines)
+        // Generate cutting guide coordinate geometry
         const cutMarks = this.generateCutMarks(x, y, slotWidth, slotHeight, gap);
 
+        // Determine if this slot has an assigned photo
+        let item = null;
+        if (slotAssignments) {
+          const assignedId = slotAssignments[globalIndex];
+          if (assignedId) {
+            item = photoInstances.find(pi => pi.key === assignedId || pi.photo.id === assignedId) || null;
+          }
+        } else {
+          item = photoInstances[globalIndex] || null;
+        }
+
+        const positionLabel = LayoutEngine.getPositionLabel(row, col, rows, cols);
+
         pageSlots.push({
-          id: `slot-${p}-${slotInPage}-${item.photo.id}`,
+          id: `slot-${p}-${slotInPage}-${item ? item.photo.id : 'empty'}`,
           pageIndex: p,
           slotIndex: slotInPage,
-          globalIndex: idx,
+          globalIndex,
           col,
           row,
           x,
           y,
           width: slotWidth,
           height: slotHeight,
-          photo: item.photo,
-          instanceIndex: item.instanceIndex,
-          cropMode: item.photo.cropMode || mergedSettings.cropMode,
-          rotation: item.photo.rotation || 0,
+          photo: item ? item.photo : null,
+          instanceIndex: item ? item.instanceIndex : 0,
+          cropMode: item ? (item.photo.cropMode || mergedSettings.cropMode) : mergedSettings.cropMode,
+          rotation: item ? (item.photo.rotation || 0) : 0,
           cutMarks,
           isPolaroid: Boolean(photoPreset.isPolaroid),
-          polaroidPadding: photoPreset.polaroidPadding || null
+          polaroidPadding: photoPreset.polaroidPadding || null,
+          positionLabel
         });
       }
 
@@ -134,9 +164,8 @@ export class LayoutEngine {
         cols,
         rows,
         capacity: capacityPerPage,
-        photoCount: pageSlots.length,
+        photoCount: pageSlots.filter(s => s.photo !== null).length,
         slots: pageSlots,
-        // Guide lines across the entire page if requested
         gridGuideLines: this.generatePageGridLines(startX, startY, cols, rows, slotWidth, slotHeight, gap)
       });
     }
@@ -308,4 +337,22 @@ export class LayoutEngine {
       isCropped: cropMode === 'cover' && Math.abs(imgAspect - slotAspect) > 0.01
     };
   }
+
+  /**
+   * Returns human-friendly position name in Indonesian (e.g. Kiri Atas, Tengah Pas, Tengah Bawah).
+   */
+  static getPositionLabel(row, col, totalRows, totalCols) {
+    let vName = 'Tengah';
+    if (row === 0) vName = 'Atas';
+    else if (row === totalRows - 1) vName = 'Bawah';
+
+    let hName = 'Tengah';
+    if (col === 0) hName = 'Kiri';
+    else if (col === totalCols - 1) hName = 'Kanan';
+
+    if (vName === 'Tengah' && hName === 'Tengah') return 'Tengah';
+    if (vName === 'Tengah') return `${hName} Tengah`;
+    return `${hName} ${vName}`;
+  }
 }
+

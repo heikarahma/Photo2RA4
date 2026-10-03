@@ -10,7 +10,14 @@ export class LayoutPreview {
     this.zoomLevel = 1.0;
     this.fitToScreen = true;
     this.onSlotClick = options.onSlotClick || (() => {});
+    this.onSwapSlots = options.onSwapSlots || (() => {});
+    this.onMoveToSlot = options.onMoveToSlot || (() => {});
+    this.onEmptySlotClick = options.onEmptySlotClick || (() => {});
     this.onPageChange = options.onPageChange || (() => {});
+
+    this.draggedSlotPhotoId = null;
+    this.draggedSlotIndex = null;
+    this.justDragged = false;
   }
 
   setLayout(layout) {
@@ -63,17 +70,57 @@ export class LayoutPreview {
       <div class="a4-paper-sheet" id="preview-paper-sheet" style="width: ${sheetWidth}px; height: ${sheetHeight}px;">
     `;
 
-    // Render Slots
+    // Render Slots (Both occupied and empty slots)
     page.slots.forEach(slot => {
       const leftPx = slot.x * mmToPx;
       const topPx = slot.y * mmToPx;
       const widthPx = slot.width * mmToPx;
       const heightPx = slot.height * mmToPx;
 
+      if (!slot.photo) {
+        // Render Empty Slot Placeholder
+        html += `
+          <div class="preview-slot empty-slot" 
+               data-slot-id="${slot.id}"
+               data-global-index="${slot.globalIndex}"
+               style="left: ${leftPx}px; top: ${topPx}px; width: ${widthPx}px; height: ${heightPx}px;"
+               title="Slot Kosong (Posisi #${slot.globalIndex + 1} - ${slot.positionLabel}) • Tarik foto ke sini atau klik untuk menaruh foto">
+            
+            <div class="empty-slot-content">
+              <div class="empty-slot-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 5v14M5 12h14"/>
+                </svg>
+              </div>
+              <span class="empty-slot-pos-badge">#${slot.globalIndex + 1}</span>
+              <span class="empty-slot-label">${slot.positionLabel}</span>
+              <span class="empty-slot-hint">Klik/Tarik ke sini</span>
+            </div>
+
+            <!-- Drop Target Indicator Overlay -->
+            <div class="slot-drop-overlay">
+              <div class="slot-drop-badge empty-target">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <path d="M12 5v14M5 12h14"/>
+                </svg>
+                <span>Taruh di Posisi #${slot.globalIndex + 1} (${slot.positionLabel})</span>
+              </div>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      // Render Occupied Slot
       const rotation = slot.photo.rotation || 0;
-      const isRotated90 = (rotation % 180) !== 0;
       const cropMode = slot.cropMode;
       const objectFit = cropMode === 'fit' ? 'contain' : 'cover';
+
+      // Precise framing offset percentage (50% is centered)
+      const offsetX = slot.photo.customCrop?.offsetX || 0;
+      const offsetY = slot.photo.customCrop?.offsetY || 0;
+      const objPosX = 50 - (offsetX * 50);
+      const objPosY = 50 - (offsetY * 50);
 
       const isPolaroid = Boolean(slot.isPolaroid && slot.polaroidPadding);
       let innerContainerStyle = 'position: absolute; inset: 0; overflow: hidden; background: #e2e8f0;';
@@ -90,21 +137,46 @@ export class LayoutPreview {
       }
 
       html += `
-        <div class="preview-slot ${isPolaroid ? 'is-polaroid' : ''}" 
+        <div class="preview-slot is-occupied ${isPolaroid ? 'is-polaroid' : ''}" 
+             draggable="true"
              data-photo-id="${slot.photo.id}" 
              data-slot-id="${slot.id}"
+             data-global-index="${slot.globalIndex}"
              style="left: ${leftPx}px; top: ${topPx}px; width: ${widthPx}px; height: ${heightPx}px; ${slotExtraStyle}"
-             title="Klik untuk sesuaikan crop / posisi foto">
+             title="Tarik (drag) untuk memindahkan/menukar posisi, atau klik untuk sesuaikan foto">
           
           <div class="slot-inner-container" style="${innerContainerStyle}">
             <img src="${slot.photo.previewUrl || slot.photo.url}" 
                  alt="${slot.photo.name}" 
-                 style="transform: rotate(${rotation}deg); object-fit: ${objectFit}; width: 100%; height: 100%;" />
+                 draggable="false"
+                 style="transform: rotate(${rotation}deg); object-fit: ${objectFit}; object-position: ${objPosX}% ${objPosY}%; width: 100%; height: 100%; pointer-events: none;" />
+          </div>
+
+          <!-- Position & Move Badge -->
+          <div class="slot-drag-handle-badge" title="Tarik foto untuk memindahkan posisi">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M7 16V4m0 0L3 8m4-4l4 4m6 4v12m0 0l4-4m-4 4l-4-4"/>
+            </svg>
+            <span>#${slot.globalIndex + 1} ${slot.positionLabel}</span>
+          </div>
+
+          <!-- Drop Target Indicator Overlay -->
+          <div class="slot-drop-overlay">
+            <div class="slot-drop-badge">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <polyline points="16 3 21 3 21 8"></polyline>
+                <line x1="4" y1="20" x2="21" y2="3"></line>
+                <polyline points="21 16 21 21 16 21"></polyline>
+                <line x1="15" y1="15" x2="21" y2="21"></line>
+                <line x1="4" y1="4" x2="9" y2="9"></line>
+              </svg>
+              <span>Tukar ke Posisi #${slot.globalIndex + 1} (${slot.positionLabel})</span>
+            </div>
           </div>
 
           <!-- Hover Dimension Tooltip -->
           <div class="slot-dimension-badge">
-            ${slot.width} × ${slot.height} mm (${photoPreset.code}) • Klik Edit
+            #${slot.globalIndex + 1} ${slot.positionLabel} • ${slot.width} × ${slot.height} mm
           </div>
 
           <!-- Cutting Guides on Preview -->
@@ -212,10 +284,81 @@ export class LayoutPreview {
   }
 
   bindEvents() {
-    this.container.querySelectorAll('.preview-slot').forEach(el => {
-      el.addEventListener('click', () => {
-        const photoId = el.getAttribute('data-photo-id');
-        this.onSlotClick(photoId);
+    const slots = this.container.querySelectorAll('.preview-slot');
+    
+    slots.forEach(el => {
+      const isOccupied = el.classList.contains('is-occupied');
+      const slotIndex = parseInt(el.getAttribute('data-global-index'), 10);
+
+      if (isOccupied) {
+        // Drag Start from occupied slot
+        el.addEventListener('dragstart', (e) => {
+          this.justDragged = true;
+          this.draggedSlotPhotoId = el.getAttribute('data-photo-id');
+          this.draggedSlotIndex = slotIndex;
+          el.classList.add('is-dragging');
+          e.dataTransfer.effectAllowed = 'move';
+          e.dataTransfer.setData('text/plain', this.draggedSlotPhotoId);
+        });
+
+        // Click to edit crop/framing
+        el.addEventListener('click', () => {
+          if (this.justDragged) return;
+          const photoId = el.getAttribute('data-photo-id');
+          this.onSlotClick(photoId);
+        });
+      } else {
+        // Click on empty slot to place/move photo here
+        el.addEventListener('click', () => {
+          if (this.justDragged) return;
+          this.onEmptySlotClick(slotIndex);
+        });
+      }
+
+      // Drag End
+      el.addEventListener('dragend', () => {
+        el.classList.remove('is-dragging');
+        slots.forEach(s => s.classList.remove('is-drop-target'));
+        setTimeout(() => {
+          this.justDragged = false;
+          this.draggedSlotPhotoId = null;
+          this.draggedSlotIndex = null;
+        }, 80);
+      });
+
+      // Drag Over (Can drop on any other slot, empty or occupied)
+      el.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        if (this.draggedSlotIndex !== null && this.draggedSlotIndex !== slotIndex) {
+          el.classList.add('is-drop-target');
+        }
+      });
+
+      // Drag Leave
+      el.addEventListener('dragleave', () => {
+        el.classList.remove('is-drop-target');
+      });
+
+      // Drop
+      el.addEventListener('drop', (e) => {
+        e.preventDefault();
+        el.classList.remove('is-drop-target');
+        
+        if (this.draggedSlotIndex === null || this.draggedSlotIndex === slotIndex) return;
+
+        if (isOccupied) {
+          // Drop on an occupied slot: swap photos
+          const targetPhotoId = el.getAttribute('data-photo-id');
+          if (this.draggedSlotPhotoId && this.draggedSlotPhotoId !== targetPhotoId) {
+            this.onSwapSlots(this.draggedSlotPhotoId, targetPhotoId);
+          }
+        } else {
+          // Drop on an empty slot: move photo to this empty slot
+          if (this.draggedSlotPhotoId) {
+            this.onMoveToSlot(this.draggedSlotPhotoId, slotIndex);
+          }
+        }
       });
     });
   }
